@@ -403,8 +403,10 @@ Session AttachGame(DWORD processId, float initialFov, bool resetFov)
         const int32_t aspectDisplacement = ReadInt32(image, callbackOffset + 23);
         session.aspectAddress = module.base + callbackOffset + 31 + aspectDisplacement;
         const float currentAspect = ReadValue<float>(session.process, session.aspectAddress);
-        if (!Approximately(currentAspect, NativeAspectCap) &&
-            !Approximately(currentAspect, SuperUltrawideAspectCap))
+        // Game updates may change the stock aspect cap (1.2.x stored 21/9, 1.3.x stores 2.4).
+        // Any sane aspect value proves the global is live; the sentinel/uninitialised marker
+        // (~1e37) and NaN are rejected. The value is forced to 32/9 immediately below.
+        if (!(currentAspect > 1.0f && currentAspect < 5.0f))
         {
             throw PatchError{L"An unexpected aspect-ratio value was found."};
         }
